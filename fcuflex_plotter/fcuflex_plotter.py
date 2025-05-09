@@ -172,26 +172,31 @@ class FCUFLEXPlotter(Node):
         self.position_stats_label = ttk.Label(position_stats_frame, text="Min: 0.00 mm, Max: 0.00 mm, Avg: 0.00 mm")
         self.position_stats_label.pack(side=tk.LEFT, padx=5)
         
-        # Setup the animation for real-time plotting
+        # Setup the animation for real-time plotting without blitting so axes rescale
         self.ani = FuncAnimation(
-            self.fig, self.update_plot, interval=100, blit=True)
+            self.fig, self.update_plot, interval=100, blit=False)
         
         # Start the Tkinter main loop in the main thread
-        # This will block until the window is closed
         self.root.mainloop()
     
     def update_plot(self, frame):
-        # Update the plots with current data
+        # Update the plots with current data and adjust time axis
         with self.lock:
-            if len(self.times) > 0:
+            if self.times:
                 self.force_line.set_data(self.times, self.force_data)
                 self.position_line.set_data(self.times, self.position_data)
                 
-                # Adjust the plot limits
+                # Update x-axis to latest data range
+                t_min = self.times[0]
+                t_max = self.times[-1]
+                self.ax1.set_xlim(t_min, t_max)
+                self.ax2.set_xlim(t_min, t_max)
+                
+                # Autoscale y-axis only
                 self.ax1.relim()
-                self.ax1.autoscale_view()
+                self.ax1.autoscale_view(scalex=False, scaley=True)
                 self.ax2.relim()
-                self.ax2.autoscale_view()
+                self.ax2.autoscale_view(scalex=False, scaley=True)
         
         return self.force_line, self.position_line
     
@@ -213,9 +218,9 @@ class FCUFLEXPlotter(Node):
     
     def clear_data(self):
         with self.lock:
-            self.times = []
-            self.force_data = []
-            self.position_data = []
+            self.times.clear()
+            self.force_data.clear()
+            self.position_data.clear()
         self.force_value_label.config(text="0.00 N")
         self.position_value_label.config(text="0.00 mm")
         self.force_stats_label.config(text="Min: 0.00 N, Max: 0.00 N, Avg: 0.00 N")
@@ -225,7 +230,7 @@ class FCUFLEXPlotter(Node):
     
     def save_to_csv(self):
         with self.lock:
-            if len(self.times) == 0:
+            if not self.times:
                 self.get_logger().warn('No data to save')
                 return
                 
@@ -237,8 +242,8 @@ class FCUFLEXPlotter(Node):
             with open(filename, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow(['Time (s)', 'Force (N)', 'Position (mm)'])
-                for i in range(len(self.times)):
-                    writer.writerow([self.times[i], self.force_data[i], self.position_data[i]])
+                for t, f, p in zip(self.times, self.force_data, self.position_data):
+                    writer.writerow([t, f, p])
         
         self.get_logger().info(f'Saved data to {filename}')
     
