@@ -8,7 +8,7 @@ Ensure to use rosdep to install dependencies.
 
 Ensure the python package "dearpygui" is installed.
 
-Ensure to first launch [fcuflex_ros2](https://github.com/wglockner/fcuflex_plotter_ros2.git) and then launch the GUI.
+Ensure to first launch [fcuflex_ros2](https://github.com/Glockner-Automation/fcuflex_plotter_ros2.git) and then launch the GUI.
 
 ## KNOWN ISSUES:
 * The connection to the device can be off and on at times.
